@@ -86,20 +86,73 @@ public class AdminController extends HttpServlet {
 	private String updatestatus(HttpServletRequest request, HttpServletResponse response) throws SQLException {
 		// TODO Auto-generated method stub	
 		/* write the code for updatestatus of loan and return to admin home page */
-		return null;
+		HttpSession session = request.getSession();
+		System.out.println("updatestatus");
+		LoanInfo loaninfo = (LoanInfo) session.getAttribute("loaninfo");
+		
+		boolean flag = connDao.updateLoanStatus(loaninfo.getApplno(), session.getAttribute("updateStatus").toString());
+		System.out.println(flag);
+		session.setAttribute("statusUpateFlag", Boolean.toString(flag));
+		System.out.println(session.getAttribute("statusUpateFlag"));
+		
+		return "calemi.jsp";
 		
 	}
 	private String calemi(HttpServletRequest request, HttpServletResponse response) throws SQLException {
 		// TODO Auto-generated method stub
 	/* write the code to calculate emi for given applno and display the details */
+		HttpSession session = request.getSession();
+		System.out.println("Calemi Method");
+		LoanInfo loanData = (LoanInfo) session.getAttribute("loaninfo");
 		
-		return null;
+		if(request.getParameter("status").equals("Approved"))
+		{
+			
+		System.out.println("Approved");
+		ApprovedLoan approvedLoan=new ApprovedLoan();
+		approvedLoan.setApplno(loanData.getApplno());
+		approvedLoan.setAmotsanctioned(Integer.parseInt(request.getParameter("amountsanctioned")));
+		approvedLoan.setLoanterm(Integer.parseInt(request.getParameter("loanterm")));
+		approvedLoan.setInterestrate(Double.parseDouble(request.getParameter("interestrate")));
+		approvedLoan.setPsd(request.getParameter("paymentstartdate"));
+		approvedLoan.setLcd(getLastPaymentDate(request.getParameter("paymentstartdate"), Integer.parseInt(request.getParameter("loanterm"))));
+		double termPaymentAmount = getTermPaymentAmount(Integer.parseInt(request.getParameter("amountsanctioned")),Double.parseDouble(request.getParameter("interestrate")),Integer.parseInt(request.getParameter("loanterm")));
+		approvedLoan.setTermpaymentamount(termPaymentAmount);
+		approvedLoan.setEmi(getMonthlyPayment(termPaymentAmount, Integer.parseInt(request.getParameter("loanterm"))));
+		
+		boolean resultFlag  = connDao.addLoanSanctionDetails(approvedLoan);
+		session.setAttribute("dataInsertFlag", resultFlag);
+		System.out.println(session.getAttribute("dataInsertFlag"));
+		session.setAttribute("applicationNum", loanData.getApplno());
+		
+		
+		}
+		else
+		{
+			session.setAttribute("dataInsertFlag", "declined");
+		}
+		
+		session.setAttribute("updateStatus", request.getParameter("status"));
+		
+		return updatestatus(request, response);
 	}
 	private String process(HttpServletRequest request, HttpServletResponse response) throws SQLException {
 		// TODO Auto-generated method stub
 	/* return to process page */
+
+		System.out.println("Process");
+		if(request.getParameter("applicationnumber")!=null)
+		{
+			System.out.println("pp");
+			LoanInfo fetchedLoanData = connDao.getLoanInfoByAppNumber(request.getParameter("applicationnumber"));
+			request.setAttribute("fetchedLoanData", fetchedLoanData);
+		}		
 		
-		return  null;
+		
+		return "process.jsp";
+		
+		
+		//return  null;
 	}
 	private String adminLogout(HttpServletRequest request, HttpServletResponse response) {
 		// TODO Auto-generated method stub
@@ -109,11 +162,35 @@ public class AdminController extends HttpServlet {
 
 	private String listall(HttpServletRequest request, HttpServletResponse response) throws SQLException {
 	/* write the code to display all the loans */
+		ArrayList<LoanInfo> list_loans = connDao.getLoanInfo();
+		request.setAttribute("list_loans", list_loans);
 		
+		String view = "listall.jsp";
 		
-		return null;
+		return view;
 		
 	}
 
+	
+	public static double getTermPaymentAmount(double sanctionLoan, double interestRate, int termOfLoan)
+	{
+		return (sanctionLoan * Math.pow(1 + (interestRate/100), termOfLoan)); 
+	}
+	
+	public static double getMonthlyPayment(double termPaymentAmount, int termLoan)
+	{
+		return termPaymentAmount / termLoan;
+	}
+	
+	public static String getLastPaymentDate(String startDate, int termLoan)
+	{
+		 LocalDate date = LocalDate.parse(startDate); 
+		 LocalDate returnvalue = date.plusMonths(termLoan);
+
+		 System.out.println(returnvalue.toString()); 
+
+		return returnvalue.toString();
+	}
+	
 	
 }

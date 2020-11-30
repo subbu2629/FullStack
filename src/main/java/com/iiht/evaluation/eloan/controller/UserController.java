@@ -313,7 +313,7 @@ private ConnectionDao connDao;
 
 	private String trackloan(HttpServletRequest request, HttpServletResponse response) {
 		// TODO Auto-generated method stub
-	/* write a code to return to trackloan page */
+	/* write a code to return to Trackloan page */
 		System.out.println("Track Loan");
 		
 		String status = connDao.getLoanById(request.getParameter("applicationnumber"), request.getSession().getAttribute("username").toString());
